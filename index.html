@@ -5,7 +5,6 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        // Let op: voor GitHub Pages is "./" meestal juist; pas aan als je in een submap staat.
         navigator.serviceWorker.register("./sw.js", { scope: "./" });
       });
     }
@@ -15,10 +14,8 @@
   <meta name="theme-color" content="#0b0d10" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <!-- nieuw -->
   <meta name="apple-mobile-web-app-title" content="TEUN FITNESS" />
   <meta name="format-detection" content="telephone=no" />
-
   <title>TEUN FITNESS — Tracker</title>
   <style>
     :root{ --bg:#0b0d10; --card:#111418; --muted:#8b95a1; --text:#e8edf2; --brand:#4f8cff; --ok:#3ddc97; --warn:#ffcc66; --ring: rgba(79,140,255,.35); }
@@ -36,13 +33,15 @@
     button{cursor:pointer}
     button:hover{border-color:#2a3240}
     button.primary{background:var(--brand);border-color:var(--brand);color:white}
+    button.danger{color:#ff6b6b;border-color:#7a2d2d;background:transparent}
+    button.danger:hover{border-color:#ff6b6b;background:#241416}
 
     .tabs{
       display:flex;gap:8px;margin:16px 0;position:sticky;top:calc(env(safe-area-inset-top) + 4px);
       z-index:10;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 4px;
       background:linear-gradient(180deg, rgba(11,13,16,.85), rgba(11,13,16,.6) 60%, rgba(11,13,16,0));
       backdrop-filter:saturate(120%) blur(6px);
-      -webkit-backdrop-filter:saturate(120%) blur(6px); /* Safari */
+      -webkit-backdrop-filter:saturate(120%) blur(6px);
     }
     .tab{padding:10px 14px;border:1px solid #1b2027;border-radius:12px;background:#0f1216;cursor:pointer}
     .tab.active{background:#1a2030;border-color:#2a3240;box-shadow:0 0 0 3px var(--ring) inset}
@@ -56,7 +55,6 @@
     .card.warn{border-color:var(--warn);box-shadow:0 0 0 3px rgba(255,204,102,.25) inset}
     .note{color:var(--muted);font-size:13px}
 
-    /* nieuw: row layout voor chips/labels in kaarten */
     .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 
     .chip{display:inline-flex;align-items:center;gap:6px;background:#0f1216;border:1px solid #1b2027;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
@@ -101,6 +99,7 @@
         <select id="weekSelect" title="Kies week"></select>
         <button id="newWeekBtn" class="primary">Nieuwe week</button>
         <button id="dupWeekBtn">Dupliceer week</button>
+        <button id="delWeekBtn" class="danger">Verwijder week</button>
         <button id="exportBtn">Exporteer</button>
         <button id="importBtn">Importeer</button>
         <input id="importFile" type="file" accept="application/json" style="display:none" />
@@ -321,6 +320,7 @@
     bindHeader(){
       const newBtn=qs('#newWeekBtn'); if(newBtn){ newBtn.onclick=()=>{ const startISO=mondayOf().toISOString(); const w=makeWeekFromTemplate(TEMPLATE,startISO); this.state.weeks.push(w); this.state.currentWeekId=w.id; store.save(this.state); this.renderWeekSelect(); this.renderTabs(); this.renderDays(); }; }
       const dup=qs('#dupWeekBtn'); if(dup){ dup.onclick=()=>{ const cur=this.currentWeek; if(!cur){ alert('Geen week geselecteerd.'); return; } const base=new Date(cur.startDate); const next=new Date(base); next.setDate(next.getDate()+7); const nextMon=mondayOf(next); let startISO=nextMon.toISOString(); let newId='week-'+startISO.slice(0,10); let guard=0; while((this.state.weeks||[]).some(w=>w.id===newId) && guard<60){ nextMon.setDate(nextMon.getDate()+7); startISO=nextMon.toISOString(); newId='week-'+startISO.slice(0,10); guard++; } const clone=JSON.parse(JSON.stringify(cur)); clone.id=newId; clone.startDate=startISO; (clone.days||[]).forEach(d=>{ d.warmupDone=false; (d.categories||[]).forEach(c=>{ (c.exercises||[]).forEach(ex=>{ ex.done=false; (ex.sets||[]).forEach(s=>{ s.done=false; s.rpe=''; }); }); }); }); this.state.weeks.push(clone); this.state.currentWeekId=clone.id; store.save(this.state); this.renderWeekSelect(); this.renderTabs(); this.renderDays(); alert('Week gedupliceerd.'); }; }
+      const del=qs('#delWeekBtn'); if(del){ del.onclick=()=>{ const cur=this.currentWeek; if(!cur){ alert('Geen week geselecteerd.'); return; } const total=(this.state.weeks||[]).length; if(total<=1){ alert('Je kunt de laatste week niet verwijderen. Maak eerst een nieuwe week.'); return; } const lbl = 'Week '+fmtDate(cur.startDate); if(!confirm('Weet je zeker dat je '+lbl+' wilt verwijderen?')) return; const sorted=[...(this.state.weeks||[])].sort((a,b)=>new Date(a.startDate)-new Date(b.startDate)); const idx=sorted.findIndex(w=>w.id===cur.id); let nextId=null; if(idx>0) nextId=sorted[idx-1].id; else if(idx<sorted.length-1) nextId=sorted[idx+1].id; this.state.weeks=this.state.weeks.filter(w=>w.id!==cur.id); this.state.currentWeekId=nextId|| (this.state.weeks[0]&&this.state.weeks[0].id); store.save(this.state); this.renderWeekSelect(); this.renderTabs(); this.renderDays(); alert(lbl+' verwijderd.'); }; }
       const exportBtn=qs('#exportBtn'); if(exportBtn){ exportBtn.onclick=()=>{ const blob=new Blob([JSON.stringify(this.state,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`teun_fitness_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href); }; }
       const importBtn=qs('#importBtn'); const file=qs('#importFile'); if(importBtn && file){ importBtn.onclick=()=>file.click(); file.onchange=e=>{ const f=e.target.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ try{ const data=JSON.parse(fr.result); if(!Array.isArray(data.weeks)) throw new Error('Ongeldig bestand'); this.state=data; store.save(this.state); this.renderWeekSelect(); this.renderTabs(); this.renderDays(); alert('Import gelukt!'); }catch(err){ alert('Import mislukt: '+err.message); } }; fr.readAsText(f); e.target.value=''; }; }
     }
