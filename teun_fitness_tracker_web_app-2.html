@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0d10" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>TEUN FITNESS — Tracker</title>
+  <style>
+    :root{ --bg:#0b0d10; --card:#111418; --muted:#8b95a1; --text:#e8edf2; --brand:#4f8cff; --ok:#3ddc97; --warn:#ffcc66; --ring: rgba(79,140,255,.35); }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:980px;margin:24px auto;padding:0 16px}
+    header{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .title{font-weight:800;font-size:22px;letter-spacing:.3px}
+    .sub{color:var(--muted);font-size:14px}
+    .bar{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}
+    .bar>*{scroll-snap-align:center;flex:0 0 auto}
+    select,button,input[type="file"]{background:#0f1216;color:var(--text);border:1px solid #1b2027;border-radius:12px;padding:10px 12px;font-size:14px;outline:none}
+    button{cursor:pointer}
+    button:hover{border-color:#2a3240}
+    button.primary{background:var(--brand);border-color:var(--brand);color:white}
+
+    .tabs{display:flex;gap:8px;margin:16px 0;position:sticky;top:calc(env(safe-area-inset-top) + 4px);z-index:10;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 4px;background:linear-gradient(180deg, rgba(11,13,16,.85), rgba(11,13,16,.6) 60%, rgba(11,13,16,0));backdrop-filter:saturate(120%) blur(6px)}
+    .tab{padding:10px 14px;border:1px solid #1b2027;border-radius:12px;background:#0f1216;cursor:pointer}
+    .tab.active{background:#1a2030;border-color:#2a3240;box-shadow:0 0 0 3px var(--ring) inset}
+
+    .day{display:none}
+    .day.active{display:block}
+
+    .card{background:var(--card);border:1px solid #1b2027;border-radius:16px;padding:16px;margin:14px 0}
+    .card h3{margin:0 0 8px 0;font-size:16px}
+    .card.warmup{border-color:var(--brand);box-shadow:0 0 0 3px var(--ring)}
+    .card.warn{border-color:var(--warn);box-shadow:0 0 0 3px rgba(255,204,102,.25) inset}
+    .note{color:var(--muted);font-size:13px}
+
+    .chip{display:inline-flex;align-items:center;gap:6px;background:#0f1216;border:1px solid #1b2027;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
+    .chip.big{font-size:14px;padding:10px 14px;background:#1a2030;border-color:#2a3240}
+    .chip.big input{margin-right:8px}
+
+    .category{margin:18px 0}
+    .category h4{margin:0 0 8px 0;font-size:15px;font-weight:700}
+
+    .exercise{border:1px dashed #243041;border-radius:14px;padding:12px;margin:10px 0}
+    .ex-top{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .ex-name{font-weight:700}
+    .yt{font-size:12px;color:var(--muted)}
+    .yt a{color:var(--muted)}
+
+    .sets{display:grid;grid-template-columns:repeat(6, minmax(0,1fr));gap:8px;margin-top:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;min-width:520px;padding-bottom:4px}
+    .sets .hdr{color:var(--muted);font-size:12px}
+    .sets input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #293041;background:#0f1216;color:var(--text);font-size:16px;line-height:1.2}
+    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+
+    @media (max-width:680px){
+      .wrap{padding-left:max(16px, env(safe-area-inset-left));padding-right:max(16px, env(safe-area-inset-right))}
+      header{position:sticky;top:0;padding-top:calc(env(safe-area-inset-top));background:linear-gradient(180deg, rgba(11,13,16,1), rgba(11,13,16,.85));z-index:20}
+      .title{font-size:20px}
+      .sub{display:none}
+      .tab{padding:12px 14px}
+      .card{border-radius:18px}
+      .exercise{padding:12px}
+      .sets{min-width:480px}
+      button,select{padding:12px 14px;border-radius:14px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="title">TEUN FITNESS — Tracker</div>
+        <div class="sub">3-daagse PPL • core elke sessie • geen push-ups/planks • data lokaal</div>
+      </div>
+      <div class="bar">
+        <select id="weekSelect" title="Kies week"></select>
+        <button id="newWeekBtn" class="primary">Nieuwe week</button>
+        <button id="dupWeekBtn">Dupliceer week</button>
+        <button id="exportBtn">Exporteer</button>
+        <button id="importBtn">Importeer</button>
+        <input id="importFile" type="file" accept="application/json" style="display:none" />
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs"></nav>
+    <section id="days"></section>
+  </div>
+
+<script>
+// TEUN FITNESS — stable build
+(function(){
+  // ---------- Template ----------
+  const TEMPLATE = {
+    days: [
+      { id:'push', title:'Dag 1 – PUSH', warmup:'Crosstrainer — 5 min', categories:[
+        { name:'Core/Buik', exercises:[
+          { name:'Bankje oefening', sets:3, targetReps:15, video:'https://www.youtube.com/watch?v=jL63e8SXDrM', trackWeight:false },
+          { name:'Pallof Press', sets:3, targetReps:15, note:'per zijde', video:'https://www.youtube.com/watch?v=nFspBRHke4w' }
+        ]},
+        { name:'Borst', exercises:[
+          { name:'Machine Chest Press', sets:3, targetReps:12, video:'https://www.youtube.com/watch?v=ciwUFdb-MVA' },
+          { name:'Incline Dumbbell Press', sets:3, targetReps:12, video:'https://www.youtube.com/watch?v=VvQxkcltBG4' },
+          { name:'Incline Dumbbell Fly', sets:2, targetReps:12, video:'https://www.youtube.com/watch?v=ZS0TVZX8UcU' }
+        ]},
+        { name:'Schouders (voor/zij)', exercises:[
+          { name:'Seated DB Shoulder Press', sets:3, targetReps:12, video:'https://www.youtube.com/shorts/E9ShwbwZ1zw' },
+          { name:'Lateral Raise (dumbbells)', sets:3, targetReps:12, video:'https://www.youtube.com/watch?v=iKK25JU-hEk' }
+        ]},
+        { name:'Triceps', exercises:[
+          { name:'Triceps Rope Pushdown', sets:3, targetReps:15, video:'https://www.youtube.com/watch?v=BQNRICm0tsA' },
+          { name:'Overhead Triceps Extension (kabel)', sets:3, targetReps:12, video:'https://www.youtube.com/watch?v=cCIQcN0BFw0' }
+        ]}
+      ]},
+      { id:'pull', title:'Dag 2 – PULL', warmup:'Crosstrainer — 5 min', categories:[
+        { name:'Core/Buik', exercises:[
+          { name:'Bankje oefening', sets:3, targetReps:15, video:'https://www.youtube.com/watch?v=jL63e8SXDrM', trackWeight:false },
+          { name:'Hanging Knee Raise', sets:3, targetReps:12, video:'https://www.youtube.com/watch?v=RD_A-Z15ER4' }
+        ]},
+        { name:'Rug – Lats (verticaal)', exercises:[
+          { name:'Lat Pulldown', sets:3, targetReps:12, video:'https://www.youtube.com/watch?v=qMLOzlpHvDk' }
+        ]},
+        { name:'Rug – Bovenrug/Mid-back (horizontaal)', exercises:[
+          { name:'Chest-Supported Row', sets:3, targetReps:12, video:'https://www.youtube.com/watch?v=BzPuC0X69Kg' },
+          { name:'1-arm DB Row', sets:2, targetReps:10, video:'https://www.youtube.com/watch?v=qNp5W7-z6h4' }
+        ]},
+        { name:'Achterste schouder', exercises:[
+          { name:'Face Pull (kabel)', sets:3, targetReps:12, video:'https://www.youtube.com/watch?v=Q6shuaJl__A' },
+          { name:'Rear-Delt Fly', sets:2, targetReps:15, video:'https://www.youtube.com/watch?v=nlkF7_2O_Lw' }
+        ]},
+        { name:'Biceps', exercises:[
+          { name:'EZ-Bar Curl', sets:3, targetReps:12, video:'https://www.youtube.com/watch?v=cdmnvo3augg' },
+          { name:'Hammer Curl (dumbbells)', sets:3, targetReps:10, video:'https://www.youtube.com/watch?v=OPqe0kCxmR8' }
+        ]}
+      ]},
+      { id:'legs', title:'Dag 3 – LEGS', cardio:'Loopband — 15 min (~60% van je kunnen)', categories:[
+        { name:'Core/Buik', exercises:[
+          { name:'Bankje oefening', sets:3, targetReps:15, video:'https://www.youtube.com/watch?v=jL63e8SXDrM', trackWeight:false },
+          { name:'Standing Cable Woodchop', sets:2, targetReps:15, note:'per zijde', video:'https://www.youtube.com/watch?v=gcGNypjIQDo' }
+        ]},
+        { name:'Quads', exercises:[
+          { name:'Leg Press Machine', sets:3, targetReps:12, video:'https://www.youtube.com/watch?v=p5dCqF7wWUw' },
+          { name:'Bulgarian Split Squat', sets:2, targetReps:12, note:'per been', video:'https://www.youtube.com/watch?v=hiLF_pF3EJM' }
+        ]},
+        { name:'Hamstrings', exercises:[
+          { name:'DB Romanian Deadlift', sets:3, targetReps:10, video:'https://www.youtube.com/watch?v=hQgFixeXdZo' },
+          { name:'Leg Curl', sets:3, targetReps:10, video:'https://www.youtube.com/watch?v=Orxowest56U' }
+        ]},
+        { name:'Kuiten', exercises:[
+          { name:'Calf Raise', sets:3, targetReps:15, video:'https://www.youtube.com/shorts/VFly5vISChc' }
+        ]}
+      ]}
+    ]
+  };
+
+  // ---------- Utils ----------
+  const qs = (s, el=document)=>el.querySelector(s);
+  const qsa = (s, el=document)=>[...el.querySelectorAll(s)];
+  const store = {
+    mem:null,
+    load(){ try{ const raw=localStorage.getItem('teunFitness'); if(raw) return JSON.parse(raw); }catch(e){} return this.mem||{}; },
+    save(d){ try{ localStorage.setItem('teunFitness', JSON.stringify(d)); }catch(e){ this.mem=d; } }
+  };
+  function storageAvailable(){ try{ const k='__tf__'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; } catch(e){ return false; } }
+  function mondayOf(date=new Date()){ const d=new Date(date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); d.setHours(0,0,0,0); return d; }
+  function fmtDate(d){ return new Date(d).toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  function makeWeekFromTemplate(template,startDate){
+    const weekId='week-'+new Date(startDate).toISOString().slice(0,10);
+    return {
+      id:weekId, startDate,
+      days: template.days.map(day=>({
+        id:day.id, title:day.title, warmup:day.warmup||null, warmupDone:false, cardio:day.cardio||null,
+        categories: day.categories.map(cat=>({
+          name:cat.name,
+          exercises: cat.exercises.map(ex=>({
+            name:ex.name, targetReps:ex.targetReps, note:ex.note||null, video:ex.video||null,
+            trackWeight: (ex.name==='Bankje oefening') ? false : (ex.trackWeight!==false), done:false,
+            sets: Array.from({length: ex.sets}).map(()=>({ weight:'', reps:ex.targetReps, rpe:'', done:false }))
+          }))
+        }))
+      }))
+    };
+  }
+
+  // ---------- App ----------
+  const app = {
+    state:{ weeks:[], currentWeekId:null },
+    init(){
+      this.storageOK = storageAvailable();
+      const data = store.load();
+      if(!Array.isArray(data.weeks) || !data.weeks.length){
+        const start = mondayOf().toISOString();
+        const w = makeWeekFromTemplate(TEMPLATE, start);
+        this.state = { weeks:[w], currentWeekId:w.id };
+        store.save(this.state);
+      } else {
+        this.state = data;
+        if(!this.state.currentWeekId) this.state.currentWeekId = this.state.weeks[0].id;
+        // migrate safely
+        let changed=false;
+        (this.state.weeks||[]).forEach(w=>{
+          (w.days||[]).forEach(d=>{
+            if(typeof d.warmupDone==='undefined'){ d.warmupDone=false; changed=true; }
+            (d.categories||[]).forEach(c=>{
+              (c.exercises||[]).forEach(ex=>{
+                if(ex && ex.name==='Bankje oefening' && ex.trackWeight!==false){ ex.trackWeight=false; changed=true; }
+                if(typeof ex.done==='undefined') { ex.done=false; changed=true; }
+                if(!Array.isArray(ex.sets)) { ex.sets=[{weight:'', reps:(ex.targetReps||10), rpe:'', done:false}]; changed=true; }
+              });
+            });
+          });
+        });
+        if(changed) store.save(this.state);
+      }
+      this.renderWeekSelect();
+      this.renderTabs();
+      this.renderDays();
+      this.bindHeader();
+    },
+    get currentWeek(){ return (this.state.weeks||[]).find(w=>w.id===this.state.currentWeekId); },
+
+    renderWeekSelect(){
+      const sel = qs('#weekSelect'); if(!sel) return; sel.innerHTML='';
+      (this.state.weeks||[]).sort((a,b)=>new Date(a.startDate)-new Date(b.startDate)).forEach(w=>{
+        const o=document.createElement('option'); o.value=w.id; o.textContent='Week '+fmtDate(w.startDate); sel.appendChild(o);
+      });
+      sel.value=this.state.currentWeekId;
+      sel.onchange=e=>{ this.state.currentWeekId=e.target.value; store.save(this.state); this.renderTabs(); this.renderDays(); };
+    },
+
+    renderTabs(){
+      const tabs = qs('#tabs'); if(!tabs) return; tabs.innerHTML='';
+      const wk=this.currentWeek; if(!wk) return;
+      wk.days.forEach((d,i)=>{
+        const b=document.createElement('button'); b.className='tab'+(i===0?' active':''); b.textContent=d.title; b.dataset.day=d.id;
+        b.onclick=()=>{ qsa('.tab',tabs).forEach(t=>t.classList.remove('active')); b.classList.add('active'); qsa('.day').forEach(x=>x.classList.remove('active')); const t=qs('#day-'+d.id); if(t) t.classList.add('active'); };
+        tabs.appendChild(b);
+      });
+    },
+
+    renderDays(){
+      const container=qs('#days'); if(!container) return; container.innerHTML='';
+      if(!this.storageOK){ container.appendChild(card('Beperkte opslagmodus', `<div class="note">Je bekijkt dit waarschijnlijk in een in-app browser (zoals WhatsApp). Gegevens worden nu <b>tijdelijk</b> opgeslagen. Open de pagina in <b>Safari</b> voor volledige opslag of voeg toe aan je beginscherm.</div>`, 'warn')); }
+      const wk=this.currentWeek; if(!wk || !wk.days || !wk.days.length){ container.appendChild(card('Geen week geladen', `<div class="note">Klik op <b>Nieuwe week</b> om te starten.</div>`)); return; }
+
+      wk.days.forEach((day,idx)=>{
+        const sec=document.createElement('section'); sec.className='day'+(idx===0?' active':''); sec.id='day-'+day.id;
+        // Warmup
+        if(day.warmup){
+          const wuId='wu-'+day.id; const done=!!day.warmupDone;
+          const el=card('Warming-up', `<div class="row"><label class="chip big"><input id="${wuId}" type="checkbox" ${done?'checked':''}> ${day.warmup}</label></div>`, 'warmup');
+          sec.appendChild(el);
+          const cb=el.querySelector('#'+wuId); if(cb){ cb.onchange=e=>{ day.warmupDone=!!e.target.checked; store.save(app.state); }; }
+        }
+        if(day.cardio){ sec.appendChild(card('Cardio', `<div class="row"><span class="chip">${day.cardio}</span></div>`)); }
+
+        // Categories & exercises
+        (day.categories||[]).forEach((cat, catIdx)=>{
+          const cWrap=document.createElement('div'); cWrap.className='category'; const h=document.createElement('h4'); h.textContent=cat.name; cWrap.appendChild(h);
+          (cat.exercises||[]).forEach((ex, exIdx)=>{
+            const exEl=document.createElement('div'); exEl.className='exercise';
+            const top=document.createElement('div'); top.className='ex-top';
+            const left=document.createElement('div'); left.className='ex-name'; left.textContent=ex.name; top.appendChild(left);
+            const right=document.createElement('div'); right.className='yt'; right.innerHTML = ex.video? `📹 <a href="${ex.video}" target="_blank" rel="noopener">Video</a>${ex.note?` • ${ex.note}`:''}` : (ex.note||'');
+            const doneId = `done-${day.id}-${catIdx}-${exIdx}`; const exDone = document.createElement('label'); exDone.className='chip'; exDone.innerHTML = `<input id="${doneId}" type="checkbox" ${ex.done?'checked':''}> ✓ Voltooid`;
+            top.appendChild(exDone); top.appendChild(right); exEl.appendChild(top);
+            const dcb = exEl.querySelector('#'+doneId); if(dcb){ dcb.onchange = (e)=>{ ex.done = !!e.target.checked; store.save(app.state); }; }
+
+            const grid=document.createElement('div'); grid.className='sets';
+            const trackWeight = (ex.name!=='Bankje oefening') && (ex.trackWeight!==false);
+            grid.style.gridTemplateColumns = trackWeight ? 'repeat(4, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))';
+            grid.appendChild(makeHdr('Set'));
+            if(trackWeight) grid.appendChild(makeHdr('Gewicht (kg)'));
+            grid.appendChild(makeHdr('Reps'));
+            grid.appendChild(makeHdr('RPE'));
+
+            (ex.sets||[]).forEach((s,si)=>{
+              grid.appendChild(lbl(si+1));
+              if(trackWeight){ const w=input('number', s.weight, v=>{ s.weight=v; save(); }); w.step='0.5'; w.min='0'; grid.appendChild(w); }
+              const r=input('number', s.reps, v=>{ s.reps=+v; save(); }); r.min='1'; grid.appendChild(r);
+              const rp=input('number', s.rpe, v=>{ s.rpe=v; save(); }); rp.min='0'; rp.max='10'; rp.step='0.5'; grid.appendChild(rp);
+            });
+            exEl.appendChild(grid);
+            cWrap.appendChild(exEl);
+          });
+          sec.appendChild(cWrap);
+        });
+        container.appendChild(sec);
+      });
+
+      function makeHdr(t){ const el=document.createElement('div'); el.className='hdr'; el.textContent=t; return el; }
+      function lbl(t){ const el=document.createElement('div'); el.className='chip'; el.textContent=t; return el; }
+      function input(type,val,on){ const el=document.createElement('input'); el.type=type; if(type!=='checkbox') el.value=(val??''); if(type==='number'){ el.inputMode='decimal'; el.step='0.5'; el.pattern='[0-9]*'; } el.oninput=()=>on(type==='checkbox'?el.checked:el.value); return el; }
+      function save(){ store.save(app.state); }
+    },
+
+    bindHeader(){
+      const newBtn=qs('#newWeekBtn'); if(newBtn){ newBtn.onclick=()=>{ const startISO=mondayOf().toISOString(); const w=makeWeekFromTemplate(TEMPLATE,startISO); this.state.weeks.push(w); this.state.currentWeekId=w.id; store.save(this.state); this.renderWeekSelect(); this.renderTabs(); this.renderDays(); }; }
+      const dup=qs('#dupWeekBtn'); if(dup){ dup.onclick=()=>{ const cur=this.currentWeek; if(!cur){ alert('Geen week geselecteerd.'); return; } const base=new Date(cur.startDate); const next=new Date(base); next.setDate(next.getDate()+7); const nextMon=mondayOf(next); let startISO=nextMon.toISOString(); let newId='week-'+startISO.slice(0,10); let guard=0; while((this.state.weeks||[]).some(w=>w.id===newId) && guard<60){ nextMon.setDate(nextMon.getDate()+7); startISO=nextMon.toISOString(); newId='week-'+startISO.slice(0,10); guard++; } const clone=JSON.parse(JSON.stringify(cur)); clone.id=newId; clone.startDate=startISO; (clone.days||[]).forEach(d=>{ d.warmupDone=false; (d.categories||[]).forEach(c=>{ (c.exercises||[]).forEach(ex=>{ ex.done=false; (ex.sets||[]).forEach(s=>{ s.done=false; s.rpe=''; }); }); }); }); this.state.weeks.push(clone); this.state.currentWeekId=clone.id; store.save(this.state); this.renderWeekSelect(); this.renderTabs(); this.renderDays(); alert('Week gedupliceerd.'); }; }
+      const exportBtn=qs('#exportBtn'); if(exportBtn){ exportBtn.onclick=()=>{ const blob=new Blob([JSON.stringify(this.state,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`teun_fitness_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href); }; }
+      const importBtn=qs('#importBtn'); const file=qs('#importFile'); if(importBtn && file){ importBtn.onclick=()=>file.click(); file.onchange=e=>{ const f=e.target.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ try{ const data=JSON.parse(fr.result); if(!Array.isArray(data.weeks)) throw new Error('Ongeldig bestand'); this.state=data; store.save(this.state); this.renderWeekSelect(); this.renderTabs(); this.renderDays(); alert('Import gelukt!'); }catch(err){ alert('Import mislukt: '+err.message); } }; fr.readAsText(f); e.target.value=''; }; }
+    }
+  };
+
+  // ---------- Card helper ----------
+  function card(title, html, cls=''){ const div=document.createElement('div'); div.className='card'+(cls?(' '+cls):''); div.innerHTML=`<h3>${title}</h3>${html}`; return div; }
+
+  // ---------- Boot ----------
+  try{ window.app=app; app.init(); } catch(e){ console.error(e); const c=document.querySelector('#days'); if(c){ c.innerHTML = `<div class="card"><h3>Fout</h3><div class="note">${e.message||e}</div></div>`; } }
+})();
+</script>
+</body>
+</html>
